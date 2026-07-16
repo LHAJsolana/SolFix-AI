@@ -16,6 +16,8 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "smoke:rpc": "tsx scripts/smoke-rpc.ts",
+    "validate:production-env": "tsx scripts/validate-production-env.ts",
+    "verify:postgres": "tsx scripts/verify-postgres.ts",
     "verify": "npm run lint && npm run typecheck && npm run test && npm run build",
     "check:env": "tsx scripts/check-env.ts"
   },
@@ -40,6 +42,7 @@
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "autoprefixer": "^10.4.20",
+    "dotenv-cli": "^11.0.0",
     "eslint": "^9.0.0",
     "eslint-config-next": "^16.2.10",
     "jsdom": "^25.0.1",

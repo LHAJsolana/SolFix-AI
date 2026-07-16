@@ -65,7 +65,7 @@ On Windows PowerShell with script execution disabled, use `npm.cmd run <script>`
 Copy `.env.example` to `.env.local` and fill only what you need for local development.
 
 - `PERSISTENCE_MODE`: `postgres`, `local-file`, or `memory`. Production must use `postgres`.
-- `DATABASE_URL`: PostgreSQL connection string for production persistence.
+- `DATABASE_URL`: PostgreSQL connection string for production persistence. For the Vercel Supabase integration, map `POSTGRES_PRISMA_URL` to this variable.
 - `SOLANA_MAINNET_RPC_URL`: Optional mainnet RPC override.
 - `SOLANA_DEVNET_RPC_URL`: Optional devnet RPC override.
 - `AI_PROVIDER`: Defaults to deterministic.
@@ -81,7 +81,7 @@ npm run db:generate
 npm run db:migrate
 ```
 
-Use `npx prisma migrate deploy` for production migrations.
+Use `npx prisma migrate deploy` for production migrations. Supabase migrations may need the non-pooling connection URL (`POSTGRES_URL_NON_POOLING`) for the migration command while runtime `DATABASE_URL` remains mapped to `POSTGRES_PRISMA_URL`.
 
 ## Real RPC Mode
 
@@ -172,10 +172,15 @@ Core diagnosis does not require AI. Set `ENABLE_AI_EXPLANATIONS=true` and `AI_PR
 
 1. Create a Vercel project.
 2. Create a Supabase PostgreSQL database.
-3. Set `DATABASE_URL`, `NEXT_PUBLIC_APP_URL`, and RPC URLs in Vercel.
-4. Run `npm run db:generate` and migrations in the deployment workflow.
-5. Deploy with `npm run build`.
-6. Confirm `/api/health` reports `ok`.
+3. Set `PERSISTENCE_MODE=postgres`.
+4. Map Supabase `POSTGRES_PRISMA_URL` to `DATABASE_URL`.
+5. Set `NEXT_PUBLIC_APP_URL`, `SOLANA_MAINNET_RPC_URL`, `SOLANA_DEVNET_RPC_URL`, and `AI_PROVIDER=deterministic`.
+6. Run `npm run db:generate` and `prisma migrate deploy`.
+7. Deploy with `vercel --prod`.
+8. Confirm `/api/health` returns HTTP 200 and `/api/readiness` returns HTTP 200.
+9. Analyze a real transaction and reopen its report URL after a redeployment.
+
+Rate limiting is process-memory only. It is acceptable for low-volume initial launch, but not sufficient as distributed abuse protection for high traffic.
 
 ## 60-Second Demo Flow
 

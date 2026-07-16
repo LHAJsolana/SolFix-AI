@@ -38,13 +38,15 @@ npm run build
 ## Database Setup
 
 1. Create a PostgreSQL database, for example Supabase or Vercel Postgres.
-2. Set `DATABASE_URL` in Vercel.
+2. Set `DATABASE_URL` in Vercel. With the Supabase integration, copy the value of `POSTGRES_PRISMA_URL` into `DATABASE_URL`.
 3. Apply migrations from a trusted workstation or CI job:
 
 ```bash
 npm run db:generate
-npx prisma migrate deploy
+npx dotenv -e .env.production.local -- npx prisma migrate deploy
 ```
+
+For Supabase, the pooled Prisma URL may not work with the migration engine. If `migrate status` or `migrate deploy` fails through the pooler, run migrations with `DATABASE_URL` temporarily set to the Supabase `POSTGRES_URL_NON_POOLING` value. Keep runtime `DATABASE_URL` mapped to `POSTGRES_PRISMA_URL`.
 
 4. Verify `/api/readiness` returns HTTP 200 after deployment.
 
@@ -73,6 +75,34 @@ Rate limiting currently uses process memory. Configure platform-level protection
 5. Confirm the report page shows live RPC metadata, instructions, logs, evidence, and JSON export.
 6. Refresh the report URL in a new browser session.
 7. Confirm `/api/readiness` remains healthy.
+
+## Supabase And Vercel Checklist
+
+- Supabase project: production PostgreSQL database.
+- Vercel integration variables present: `POSTGRES_PRISMA_URL`, `POSTGRES_URL_NON_POOLING`, `POSTGRES_HOST`, and Supabase public variables.
+- Application runtime variable: `DATABASE_URL` must equal the Supabase `POSTGRES_PRISMA_URL` value.
+- Production persistence: `PERSISTENCE_MODE=postgres`.
+- Deterministic mode: `AI_PROVIDER=deterministic`; OpenAI and Anthropic keys are optional.
+- Pull production env locally with `vercel env pull .env.production.local --environment=production`.
+- Validate without printing values with `npm run validate:production-env` after loading the env file.
+- Verify database CRUD with `npm run verify:postgres` after loading the env file.
+
+## Rollback
+
+1. Use Vercel's deployment history to promote the previous successful production deployment.
+2. Do not run destructive Prisma reset commands against production.
+3. If a migration caused the issue, create and deploy a forward-fix migration.
+4. Re-run `/api/readiness` and a real transaction analysis after rollback or forward fix.
+
+## Manual Wallet Attestation Test
+
+Memo attestation requires a browser wallet and must be manually checked:
+
+1. Open a persisted report.
+2. Connect a devnet-capable Solana wallet.
+3. Reject once and confirm the UI recovers.
+4. Retry, sign, broadcast, and wait for confirmation.
+5. Confirm the signature persists and the Explorer link uses `cluster=devnet`.
 
 ## Persistence Rules
 

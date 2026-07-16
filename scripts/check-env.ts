@@ -6,3 +6,5 @@ if (missing.length) {
 }
 
 console.log("Environment check complete. Local development can run without paid AI services.");
+
+export {};
