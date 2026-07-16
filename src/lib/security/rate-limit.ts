@@ -1,0 +1,31 @@
+const buckets = new Map<string, { count: number; resetAt: number }>();
+
+export type RateLimitResult = { ok: boolean; remaining: number; resetAt: number };
+
+export function clientKey(request: Request) {
+  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return forwarded || request.headers.get("x-real-ip") || "local";
+}
+
+export function rateLimit(key: string, limit = 30, windowMs = 60_000): RateLimitResult {
+  const now = Date.now();
+  const current = buckets.get(key);
+  if (!current || current.resetAt < now) {
+    buckets.set(key, { count: 1, resetAt: now + windowMs });
+    return { ok: true, remaining: limit - 1, resetAt: now + windowMs };
+  }
+  if (current.count >= limit) {
+    return { ok: false, remaining: 0, resetAt: current.resetAt };
+  }
+  current.count += 1;
+  return { ok: true, remaining: limit - current.count, resetAt: current.resetAt };
+}
+
+export function rateLimitHeaders(result: RateLimitResult) {
+  const retryAfter = Math.max(1, Math.ceil((result.resetAt - Date.now()) / 1000)).toString();
+  return {
+    "retry-after": retryAfter,
+    "x-ratelimit-remaining": result.remaining.toString(),
+    "x-ratelimit-reset": new Date(result.resetAt).toISOString()
+  };
+}

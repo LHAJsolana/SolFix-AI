@@ -1,0 +1,42 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AnalysisReport {
+  id                String   @id
+  slug              String   @unique
+  visibility        String   @default("public")
+  network           String?
+  signature         String?
+  analysisVersion   String?
+  parserVersion     String?
+  classifierVersion String?
+  isDemo            Boolean  @default(false)
+  payload           Json
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  attestation Attestation?
+
+  @@index([visibility])
+  @@index([network, signature])
+  @@index([isDemo])
+  @@index([analysisVersion])
+  @@index([createdAt])
+}
+
+model Attestation {
+  id        String   @id
+  reportId  String   @unique
+  report    AnalysisReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  hash      String
+  memo      String
+  signature String?
+  createdAt DateTime @default(now())
+
+  @@index([hash])
+}
