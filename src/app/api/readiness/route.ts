@@ -3,6 +3,15 @@ import { safePersistenceStatus } from "@/lib/database/persistence-mode";
 import { getPrisma } from "@/lib/database/prisma";
 import { checkRpcHealth } from "@/lib/solana/rpc-client";
 
+function safeError(error: unknown) {
+  if (!(error instanceof Error)) return "Unknown PostgreSQL error.";
+  const withCode = error as Error & { code?: string };
+  const message = error.message
+    .replace(/postgres(?:ql)?:\/\/\S+/gi, "[redacted-postgres-url]")
+    .replace(/:\/\/[^@\s]+@/g, "://[redacted]@");
+  return withCode.code ? `${withCode.code}: ${message}` : message;
+}
+
 async function checkPostgres() {
   const persistence = safePersistenceStatus();
   if (!persistence.configured || persistence.mode !== "postgres") {
@@ -13,8 +22,8 @@ async function checkPostgres() {
     if (!prisma) return { ok: false, mode: "postgres", error: "PostgreSQL is not configured." };
     await prisma.$queryRaw`SELECT 1`;
     return { ok: true, mode: "postgres" };
-  } catch {
-    return { ok: false, mode: "postgres", error: "PostgreSQL is unreachable." };
+  } catch (error) {
+    return { ok: false, mode: "postgres", error: safeError(error) };
   }
 }
 
